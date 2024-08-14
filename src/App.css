@@ -1,29 +1,84 @@
 .app {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  position: relative;
+  width: 100vw;
   height: 100vh;
+  overflow: hidden;
   background-color: #000;
 }
 
-.camera-view {
-  position: relative;
-  width: 640px;
-  height: 480px;
-}
-
-/* .video {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: none;
-} */
-
-.canvas {
+.video-container {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 0; /* Ensure video is behind control container */
+}
+
+.video {
+  display: none; /* Hidden since drawing happens on the canvas */
+}
+
+.canvas {
+  width: auto;
+  height: 100%;
+}
+
+.control-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100vh;
+  z-index: 1; /* Bring controls above video */
+}
+
+.flex-grow {
+  flex: 1;
+}
+
+.navbar-area {
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  padding: 10px; /* Padding to ensure it's not close to the edges */
+  text-align: center;
+}
+
+.button-area {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+}
+
+.default.button-area {
+  background-color: white;
+}
+
+.ideation.button-area {
+  background-color: yellow;
+}
+
+.recording.button-area {
+  background-color: red;
+}
+
+.download.button-area {
+  background-color: blue;
+}
+
+.action-button {
+  background: none;
+  border: none;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  border-radius: 50%;
 }

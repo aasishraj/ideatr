@@ -1,6 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircle, faStop, faDownload } from '@fortawesome/free-solid-svg-icons';
 import './App.css';
 
 const App = () => {
@@ -9,15 +7,12 @@ const App = () => {
     'Framework', 'Gateway', 'Hyperlink', 'Interface', 'Kernel'
   ];
 
+  const [state, setState] = useState('default'); // 'default', 'ideation', 'recording', 'download'
   const [selectedWords, setSelectedWords] = useState([]);
-  const [recording, setRecording] = useState(false);
-  const [recorded, setRecorded] = useState(false);
   const videoRef = useRef();
   const canvasRef = useRef();
   const mediaRecorderRef = useRef();
   const recordedChunks = useRef([]);
-  const progressRef = useRef();
-  const stopTimeoutRef = useRef();
 
   const getRandomWords = () => {
     const firstIndex = Math.floor(Math.random() * words.length);
@@ -25,35 +20,34 @@ const App = () => {
     do {
       secondIndex = Math.floor(Math.random() * words.length);
     } while (secondIndex === firstIndex);
-
-    return [words[firstIndex], words[secondIndex]];
+    setSelectedWords([words[firstIndex], words[secondIndex]]);
   };
 
   const handleButtonClick = () => {
-    if (!selectedWords.length) {
-      // Generate words
-      handleGenerateWords();
-    } else if (!recording && !recorded) {
-      // Start recording
-      startRecording();
-    } else if (recording) {
-      // Stop recording
-      handleStopRecording();
-    } else if (recorded) {
-      // Download the video and reset
-      downloadVideo();
-      resetState();
+    switch (state) {
+      case 'default':
+        setState('ideation');
+        getRandomWords();
+        break;
+      case 'ideation':
+        setState('recording');
+        startRecording();
+        break;
+      case 'recording':
+        stopRecording();
+        break;
+      case 'download':
+        downloadVideo();
+        resetState();
+        break;
+      default:
+        break;
     }
-  };
-
-  const handleGenerateWords = () => {
-    const newWords = getRandomWords();
-    setSelectedWords(newWords);
   };
 
   const resetState = () => {
     setSelectedWords([]);
-    setRecorded(false);
+    setState('default');
   };
 
   const startVideoPreview = useCallback(async () => {
@@ -66,25 +60,37 @@ const App = () => {
       const video = videoRef.current;
       if (canvas && video) {
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Calculate the center crop for 9:16 aspect ratio
+        const videoWidth = video.videoWidth;
+        const videoHeight = video.videoHeight;
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+
+        // Center cropping
+        const cropHeight = Math.min(videoHeight, videoWidth * (16 / 9));
+        const cropWidth = cropHeight * (9 / 16);
+        const cropX = (videoWidth - cropWidth) / 2;
+        const cropY = (videoHeight - cropHeight) / 2;
+
+        ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, canvasWidth, canvasHeight);
+
+        // Draw words
         if (selectedWords.length > 1) {
-          ctx.font = '24px "Times New Roman"';
-
-          // Left word placement
-          const leftText = selectedWords[0];
+          ctx.font = '24px "Arial"';
           ctx.fillStyle = 'black';
-          ctx.fillRect(10, canvas.height - 40, ctx.measureText(leftText).width + 8, 30);
+          ctx.fillRect(10, canvasHeight - 60, ctx.measureText(selectedWords[0]).width + 8, 30);
           ctx.fillStyle = 'white';
-          ctx.fillText(leftText, 14, canvas.height - 18);
+          ctx.fillText(selectedWords[0], 14, canvasHeight - 38);
 
-          // Right word placement
           const rightText = selectedWords[1];
           const rightTextWidth = ctx.measureText(rightText).width;
           ctx.fillStyle = 'black';
-          ctx.fillRect(canvas.width - rightTextWidth - 18, canvas.height - 40, rightTextWidth + 8, 30);
+          ctx.fillRect(canvasWidth - rightTextWidth - 18, canvasHeight - 60, rightTextWidth + 8, 30);
           ctx.fillStyle = 'white';
-          ctx.fillText(rightText, canvas.width - rightTextWidth - 14, canvas.height - 18);
+          ctx.fillText(rightText, canvasWidth - rightTextWidth - 14, canvasHeight - 38);
         }
+
         requestAnimationFrame(drawOnCanvas);
       }
     };
@@ -92,47 +98,44 @@ const App = () => {
   }, [selectedWords]);
 
   const startRecording = () => {
-    recordedChunks.current = []; // Reset recorded chunks
+    recordedChunks.current = [];
     const canvasStream = canvasRef.current.captureStream(30);
     const audioTrack = videoRef.current.srcObject.getAudioTracks()[0];
-    const canvasAudioStream = new MediaStream([audioTrack, ...canvasStream.getVideoTracks()]);
-    mediaRecorderRef.current = new MediaRecorder(canvasAudioStream, { mimeType: 'video/webm' });
+    const combinedStream = new MediaStream([audioTrack, ...canvasStream.getVideoTracks()]);
+    mediaRecorderRef.current = new MediaRecorder(combinedStream, { mimeType: 'video/webm' });
 
     mediaRecorderRef.current.ondataavailable = (e) => {
       if (e.data.size > 0) recordedChunks.current.push(e.data);
     };
 
     mediaRecorderRef.current.onstop = () => {
-      setRecorded(true);
+      setState('download');
     };
 
     mediaRecorderRef.current.start();
-    setRecording(true);
 
-    // Automatically stop recording after 60 seconds
-    stopTimeoutRef.current = setTimeout(() => {
-      handleStopRecording();
-    }, 60000);
-
-    // Circular progress update
+    // Setup the 90-second timer
+    let duration = 90 * 1000;
     let startTime = Date.now();
-    const updateProgress = () => {
-      const elapsed = (Date.now() - startTime) / 1000;
-      const progress = (elapsed / 60) * 360;
-      progressRef.current.style.background = `conic-gradient(red ${progress}deg, transparent ${progress}deg)`;
 
-      if (elapsed < 60 && recording) {
+    const updateProgress = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = (elapsed / duration) * 360;
+      document.documentElement.style.setProperty('--progress', `${progress}deg`);
+
+      if (elapsed < duration && state === 'recording') {
         requestAnimationFrame(updateProgress);
+      } else {
+        stopRecording();
       }
     };
     requestAnimationFrame(updateProgress);
   };
 
-  const handleStopRecording = () => {
-    if (mediaRecorderRef.current && recording) {
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && state === 'recording') {
       mediaRecorderRef.current.stop();
-      clearTimeout(stopTimeoutRef.current); // Clear timeout to prevent duplicate calls
-      setRecording(false);
+      setState('download');
     }
   };
 
@@ -147,33 +150,24 @@ const App = () => {
     a.download = filename;
     a.click();
 
-    // Clean up the URL object
     URL.revokeObjectURL(url);
   };
 
   useEffect(() => {
     startVideoPreview().catch(error => console.error('Error accessing video', error));
-    return () => clearTimeout(stopTimeoutRef.current); // Cleanup timeout on component unmount
   }, [startVideoPreview]);
 
   return (
     <div className="app">
-      <div className="camera-view">
+      <div className="video-container">
         <video ref={videoRef} className="video" muted playsInline autoPlay />
-        <canvas ref={canvasRef} className="canvas" width="640" height="480" />
-        <div className="controls">
-          <div ref={progressRef} className={`progress-circle ${recording ? 'recording' : ''}`}>
-            <button
-              onClick={handleButtonClick}
-              title={!selectedWords.length ? "Generate Words" : recording ? "Stop Recording" : recorded ? "Download Video" : "Start Recording"}
-              className="action-button"
-            >
-              <FontAwesomeIcon
-                icon={recording ? faStop : recorded ? faDownload : faCircle}
-                size="2x"
-                color={recording ? 'red' : recorded ? 'blue' : 'green'}
-              />
-            </button>
+        <canvas ref={canvasRef} className="canvas" width="360" height="640" />
+      </div>
+      <div className="control-container">
+        <div className="flex-grow" />
+        <div className="navbar-area">
+          <div className={`button-area ${state}`}>
+            <button onClick={handleButtonClick} className="action-button" />
           </div>
         </div>
       </div>
