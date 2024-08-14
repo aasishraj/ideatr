@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import fixWebmDuration from 'webm-duration-fix';
 import './App.css';
 
 const App = () => {
@@ -14,6 +15,7 @@ const App = () => {
   const canvasRef = useRef();
   const mediaRecorderRef = useRef();
   const recordedChunks = useRef([]);
+  const recordingStartRef = useRef(); // To store recording start time
 
   const getRandomWords = () => {
     const firstIndex = Math.floor(Math.random() * words.length);
@@ -122,6 +124,7 @@ const App = () => {
 
   const startRecording = () => {
     recordedChunks.current = [];
+    recordingStartRef.current = Date.now();
     const canvasStream = canvasRef.current.captureStream(30);
     const audioTrack = videoRef.current.srcObject.getAudioTracks()[0];
     const combinedStream = new MediaStream([audioTrack, ...canvasStream.getVideoTracks()]);
@@ -162,17 +165,19 @@ const App = () => {
     }
   };
 
-  const downloadVideo = () => {
-    const blob = new Blob(recordedChunks.current, { type: 'video/webm' });
-    const url = URL.createObjectURL(blob);
+  const downloadVideo = async () => {
+    const completeBlob = new Blob(recordedChunks.current, { type: 'video/webm' });
+    const fixedBlob = await fixWebmDuration(completeBlob, Date.now() - recordingStartRef.current);
 
+    const url = URL.createObjectURL(fixedBlob);
     const a = document.createElement('a');
     const date = new Date();
-    const filename = `${selectedWords.join('_')}_${date.toISOString().replace(/[:.]/g, '-')}.mp4`;
+    const filename = `${selectedWords.join('_')}_${date.toISOString().replace(/[:.]/g, '-')}.webm`;
     a.href = url;
     a.download = filename;
     a.click();
 
+    // Clean up the URL object
     URL.revokeObjectURL(url);
   };
 
