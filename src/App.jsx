@@ -9,6 +9,7 @@ const App = () => {
 
   const [state, setState] = useState('default'); // 'default', 'ideation', 'recording', 'download'
   const [selectedWords, setSelectedWords] = useState([]);
+  const [countdown, setCountdown] = useState(null); // Countdown state
   const videoRef = useRef();
   const canvasRef = useRef();
   const mediaRecorderRef = useRef();
@@ -30,8 +31,7 @@ const App = () => {
         getRandomWords();
         break;
       case 'ideation':
-        setState('recording');
-        startRecording();
+        startCountdown();
         break;
       case 'recording':
         stopRecording();
@@ -48,6 +48,7 @@ const App = () => {
   const resetState = () => {
     setSelectedWords([]);
     setState('default');
+    setCountdown(null);
   };
 
   const startVideoPreview = useCallback(async () => {
@@ -91,11 +92,33 @@ const App = () => {
           ctx.fillText(rightText, canvasWidth - rightTextWidth - 14, canvasHeight - 38);
         }
 
+        // Draw Countdown
+        if (countdown !== null) {
+          ctx.fillStyle = 'white';
+          ctx.font = 'bold 100px Arial';
+          ctx.fillText(countdown, canvasWidth / 2 - 30, canvasHeight / 2);
+        }
+
         requestAnimationFrame(drawOnCanvas);
       }
     };
     drawOnCanvas();
-  }, [selectedWords]);
+  }, [selectedWords, countdown]);
+
+  const startCountdown = () => {
+    let counter = 3;
+    setCountdown(counter);
+    const countdownInterval = setInterval(() => {
+      counter -= 1;
+      setCountdown(counter);
+      if (counter === 0) {
+        clearInterval(countdownInterval);
+        setCountdown(null);
+        setState('recording');
+        startRecording();
+      }
+    }, 1000);
+  };
 
   const startRecording = () => {
     recordedChunks.current = [];
@@ -115,8 +138,8 @@ const App = () => {
     mediaRecorderRef.current.start();
 
     // Setup the 90-second timer
-    let duration = 90 * 1000;
-    let startTime = Date.now();
+    const duration = 90 * 1000;
+    const startTime = Date.now();
 
     const updateProgress = () => {
       const elapsed = Date.now() - startTime;
