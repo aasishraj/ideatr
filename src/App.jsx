@@ -163,12 +163,9 @@ const App = () => {
         <video ref={videoRef} className="video" muted playsInline autoPlay />
         <canvas ref={canvasRef} className="canvas" width="360" height="640" />
       </div>
-      <div className="control-container">
-        <div className="flex-grow" />
-        <div className="navbar-area">
-          <div className={`button-area ${state}`}>
-            <button onClick={handleButtonClick} className="action-button" />
-          </div>
+      <div className="navbar-area">
+        <div className={`button-area ${state}`}>
+          <button onClick={handleButtonClick} className="action-button" />
         </div>
       </div>
     </div>

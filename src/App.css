@@ -1,55 +1,70 @@
+:root {
+  --background-dark: #000000;
+  --navbar-background: #000000;
+  --button-default: #ffffff;
+  --button-ideation: #ffeb3b;
+  --button-recording: #f44336;
+  --button-download: #2196f3;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Arial', sans-serif;
+  background-color: var(--background-dark);
+  color: #ffffff;
+}
+
 .app {
-  position: relative;
-  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   height: 100vh;
+  width: 100vw;
+  background-color: var(--background-dark);
   overflow: hidden;
-  background-color: #000;
 }
 
 .video-container {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: relative;
+  flex-grow: 1;
   width: 100%;
-  height: 100%;
+  max-height: calc(100vh - 90px); /* Account for navbar height */
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 0; /* Ensure video is behind control container */
+  padding: 20px;
+  background-color: var(--background-dark);
+  border-radius: 20px;
 }
 
 .video {
-  display: none; /* Hidden since drawing happens on the canvas */
+  display: none; /* Drawing happens on the canvas */
 }
 
 .canvas {
+  align-self: stretch;
   width: auto;
-  height: 100%;
-}
-
-.control-container {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  height: 100vh;
-  z-index: 1; /* Bring controls above video */
-}
-
-.flex-grow {
-  flex: 1;
+  max-width: 90vw;
+  height: auto;
+  max-height: 100%;
+  border-radius: 20px;
+  box-shadow: none; /* Removed shadow to prevent any border glow */
 }
 
 .navbar-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-  padding: 10px; /* Padding to ensure it's not close to the edges */
-  text-align: center;
+  background-color: var(--navbar-background);
+  padding: 15px;
+  box-shadow: none; /* Removed shadow to prevent any border glow */
 }
 
 .button-area {
-  position: relative;
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -59,19 +74,19 @@
 }
 
 .default.button-area {
-  background-color: white;
+  background-color: var(--button-default);
 }
 
 .ideation.button-area {
-  background-color: yellow;
+  background-color: var(--button-ideation);
 }
 
 .recording.button-area {
-  background-color: red;
+  background-color: var(--button-recording);
 }
 
 .download.button-area {
-  background-color: blue;
+  background-color: var(--button-download);
 }
 
 .action-button {
@@ -81,4 +96,31 @@
   height: 100%;
   cursor: pointer;
   border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.action-button:hover {
+  transform: scale(1.1);
+}
+
+@media (min-width: 1024px) {
+  .video-container {
+    max-width: 800px;
+    padding: 30px;
+  }
+
+  .canvas {
+    max-width: 700px;
+  }
+}
+
+@media (max-width: 600px) {
+  .video-container {
+    padding: 10px;
+    border-radius: 10px; /* Ensure rounding applies fully */
+  }
+
+  .canvas {
+    max-width: 95vw;
+  }
 }
